@@ -1,7 +1,8 @@
 # 这是关于手动搭建神经网络包的项目
 ## tensor.py
 存放了自动求导系统
-
+他会记住每个数值是怎么计算来的，再用bakcward自动计算梯度从而自动求导
+他做两件事：1.存储现在的数值。2.存这个数值是如何算出来的
 
 ## functional.py
 存放了这个神经网络涉及的所有不含参数的公式，如果需要调整，可以在文件中修改，但要注意在__init__.py里调用api
@@ -24,9 +25,15 @@ model = Sequential(
 隐藏层：2个神经元
 输出层：一个神经元
   
+## optim.py
+SGD 这个类是“参数更新器”
+backward()的职责是：在计算图里传递梯度，把 param.grad 填满
+SGD.step()的职责是：拿着 param.grad 去更新 param.data，使模型真正学习
+SGD.zero_grad()的职责是：把旧梯度擦干净，为下一次 backward 做准备
+
 
 ## __init__.py
-PyTorch 是 一个非常精心设计的大型框架，我们之所以可以在写代码的时候直接import torch，那是因为pytorch把他的所有API都放进了init.py文件，所以我们可以直接通过torch调用
+PyTorch是一个非常精心设计的大型框架，我们之所以可以在写代码的时候直接import torch，那是因为pytorch把他的所有API都放进了init.py文件，所以我们可以直接通过torch调用
 通过此文件可以让我们在写代码的时候直接import wuwenjun as wwj就可以直接调用所有功能，示例如下：
 ```python
 import wuwenjun as wwj
