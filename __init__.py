@@ -1,6 +1,6 @@
 from .tensor import Tensor
 from .functional import sigmoid, mse_loss
-from .layers import Linear, Sequential, Module
+from .layers import Linear, Sequential, Module,Sigmoid
 from .optim import SGD
 
 __all__ = [

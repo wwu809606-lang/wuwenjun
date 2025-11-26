@@ -3,6 +3,7 @@ import numpy as np
 
 
 class Tensor:#定义一个名为 Tensor 的类,类似于 PyTorch 的 torch.Tensor,用来表示带梯度的张量。
+    
     def __init__(self, data, requires_grad=False, depends_on=None):
         """
         data: numpy array or python number
@@ -81,7 +82,7 @@ class Tensor:#定义一个名为 Tensor 的类,类似于 PyTorch 的 torch.Tenso
             def grad_fn(grad):
                 return grad     # ∂(x+y)/∂x = 1
             depends_on.append(Dependency(self, grad_fn))
-        """"
+        """
         如果 self 需要梯度:
         定义一个内部函数 grad_fn(grad),表示:当前节点对 self 的局部导数如何作用在上游梯度上。
         由于加法的导数是 1,所以直接返回传入的 grad 即可。
@@ -93,7 +94,7 @@ class Tensor:#定义一个名为 Tensor 的类,类似于 PyTorch 的 torch.Tenso
             def grad_fn(grad):
                 return grad     # ∂(x+y)/∂y = 1
             depends_on.append(Dependency(other, grad_fn))
-        """"
+        """
         如果 other 需要梯度:
         对 y 的导数也是 1。
         同理,定义一个 grad_fn(grad),返回传入的 grad。
@@ -110,6 +111,35 @@ class Tensor:#定义一个名为 Tensor 的类,类似于 PyTorch 的 torch.Tenso
         requires_grad:只要有一个输入需要梯度,输出就需要梯度（否则就不用追踪）。
         depends_on:标记这个结果是“由哪些父张量 + 哪些局部梯度函数”计算出来的。这一行完成了把计算图的边接上。
         """ 
+    # ========= 减法 ===========
+    def __sub__(self, other):
+        other = other if isinstance(other, Tensor) else Tensor(other)
+        data = self.data - other.data
+
+        depends_on = []
+        if self.requires_grad:
+            def grad_fn(grad):
+                return grad  # ∂(x - y)/∂x = 1
+            depends_on.append(Dependency(self, grad_fn))
+
+        if other.requires_grad:
+            def grad_fn(grad):
+                return -grad  # ∂(x - y)/∂y = -1
+            depends_on.append(Dependency(other, grad_fn))
+
+        return Tensor(
+            data,
+            requires_grad=(self.requires_grad or other.requires_grad),
+            depends_on=depends_on
+        )
+
+
+    
+
+ 
+
+
+
 
 
 
@@ -164,6 +194,11 @@ class Tensor:#定义一个名为 Tensor 的类,类似于 PyTorch 的 torch.Tenso
 
         if self.requires_grad:
             def grad_fn(grad):
+                ## grad: dL/dZ，确保是二维
+                grad = grad.reshape(1, -1) if grad.ndim == 1 else grad
+                # x: 原始输入，也 reshape 成二维行向量
+                x = self.data.reshape(1, -1) if self.data.ndim == 1 else self.data
+                # dL/dX = dL/dZ · W^T
                 return grad.dot(other.data.T)   
             depends_on.append(Dependency(self, grad_fn))
         """
@@ -178,7 +213,9 @@ class Tensor:#定义一个名为 Tensor 的类,类似于 PyTorch 的 torch.Tenso
 
         if other.requires_grad:
             def grad_fn(grad):
-                return self.data.T.dot(grad)#矩阵转置
+                grad = grad.reshape(1, -1) if grad.ndim == 1 else grad
+                x = self.data.reshape(1, -1) if self.data.ndim == 1 else self.data
+                return x.T.dot(grad)
             depends_on.append(Dependency(other, grad_fn))
         """
         对于矩阵乘法 Z = X  W,
@@ -189,9 +226,11 @@ class Tensor:#定义一个名为 Tensor 的类,类似于 PyTorch 的 torch.Tenso
 
 
 
-        return Tensor(data,
-                      requires_grad=(self.requires_grad or other.requires_grad),
-                      depends_on=depends_on)
+        return Tensor(
+            data,
+            requires_grad=(self.requires_grad or other.requires_grad),
+            depends_on=depends_on
+        )
         """
         创建一个新的 Tensor 作为矩阵乘法的结果。
         data:刚刚算出的值。

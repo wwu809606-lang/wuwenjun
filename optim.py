@@ -1,4 +1,6 @@
 # wuwenjun/optim.py
+from typing import List
+
 from .tensor import Tensor
 
 class SGD:
